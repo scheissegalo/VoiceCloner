@@ -19,7 +19,35 @@ from training.tacotron2_model import Tacotron2
 from training.clean_text import clean_text
 from training import DEFAULT_ALPHABET
 from synthesis.vocoders import Hifigan
+from dataset.transcribe import Silero, DeepSpeech, SILERO_LANGUAGES
+from main import app, paths
+from training.utils import (
+    get_available_memory,
+    get_gpu_memory,
+    get_batch_size,
+    load_symbols,
+    generate_timelapse_gif,
+    create_trainlist_vallist_files,
+)
 
+TRANSCRIPTION_MODEL = "model.pbmm"
+ALPHABET_FOLDER = "alphabets"
+ALPHABET_FILE = "alphabet.txt"
+
+
+def get_languages():
+    silero_languages = {language: True for language in SILERO_LANGUAGES}
+    custom_models = {
+        language: os.path.isfile(os.path.join(paths["languages"], language, TRANSCRIPTION_MODEL))
+        for language in os.listdir(paths["languages"])
+    }
+    return {**silero_languages, **custom_models}
+
+def get_symbols(language):
+    if language in SILERO_LANGUAGES:
+        return load_symbols(os.path.join(ALPHABET_FOLDER, f"{language}.txt"))
+    else:
+        return load_symbols(os.path.join(paths["languages"], language, ALPHABET_FILE))
 
 def load_model(model_path):
     """
@@ -113,7 +141,8 @@ def join_alignment_graphs(alignments):
 def synthesize(
     model,
     text,
-    symbols=DEFAULT_ALPHABET,
+    #symbols=DEFAULT_ALPHABET,
+    symbols = get_symbols("german2"),
     graph_path=None,
     audio_path=None,
     vocoder=None,
@@ -157,6 +186,9 @@ def synthesize(
     AssertionError
         If audio_path is given without a vocoder
     """
+    #model = os.path.join(paths["models"], "Merkel6")
+
+
     if audio_path:
         assert vocoder, "Missing vocoder"
 
